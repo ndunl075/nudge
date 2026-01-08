@@ -1,0 +1,8 @@
+{
+    "metric_name": "Customer Churn",
+    "current_value": "8.4%",
+    "trend_status": "warning",
+    "semantic_context": "Churn often spikes when the Enterprise server has latency or during holiday freezes.",
+    "metric": "Customer Churn",
+    "value": "8.4%"
+  }
