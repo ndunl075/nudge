@@ -1,0 +1,49 @@
+{
+    "blocks": [
+      {
+        "type": "header",
+        "text": {
+          "type": "plain_text",
+          "text": "🤖 Nudge: Weekly Intern Report",
+          "emoji": true
+        }
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "{{aiAnalysis}}"
+        }
+      },
+      {
+        "type": "context",
+        "elements": [
+          {
+            "type": "mrkdwn",
+            "text": "*Background Work Completed:*\n{{proactiveLog}}"
+          }
+        ]
+      },
+      {
+        "type": "divider"
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "*Ready to proceed?*"
+        },
+        "accessory": {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "{{actionLabel}}",
+            "emoji": true
+          },
+          "style": "primary",
+          "value": "approve_action",
+          "action_id": "btn_approve"
+        }
+      }
+    ]
+  }
