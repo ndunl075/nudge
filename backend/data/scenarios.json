@@ -1,0 +1,26 @@
+{
+    "CRITICAL_FAILURE": {
+      "metric_name": "Global Churn Rate",
+      "current_value": "12.4%",
+      "trend_status": "warning",
+      "semantic_context": "Churn has spiked 4% in 24 hours. This correlates with the 'v2.0 Update' released yesterday.",
+      "metric": "Global Churn",
+      "value": "12.4%"
+    },
+    "RECORD_HIGH": {
+      "metric_name": "Daily Active Users (DAU)",
+      "current_value": "1.2M",
+      "trend_status": "success",
+      "semantic_context": "User activity is at an all-time high following the Super Bowl ad spot.",
+      "metric": "DAU",
+      "value": "1.2M"
+    },
+    "BUDGET_ALERT": {
+      "metric_name": "Cloud Compute Cost",
+      "current_value": "$45,000",
+      "trend_status": "neutral",
+      "semantic_context": "Costs are 15% over budget. The primary driver is the 'ML-Training-Cluster' left running over the weekend.",
+      "metric": "Cloud Cost",
+      "value": "$45k"
+    }
+  }

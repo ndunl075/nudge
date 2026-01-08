@@ -1,0 +1,68 @@
+{
+    "blocks": [
+      {
+        "type": "header",
+        "text": {
+          "type": "plain_text",
+          "text": "🚨 Nudge Alert: {{metricName}}",
+          "emoji": true
+        }
+      },
+      {
+        "type": "section",
+        "fields": [
+          {
+            "type": "mrkdwn",
+            "text": "*Current Status:*\n{{currentValue}}"
+          },
+          {
+            "type": "mrkdwn",
+            "text": "*Impact:*\nHigh Priority"
+          }
+        ]
+      },
+      {
+        "type": "divider"
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "*🤖 Insight:*\n{{aiAnalysis}}"
+        }
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "*📝 Proactive Log:*\n{{proactiveLog}}"
+        }
+      },
+      {
+        "type": "actions",
+        "elements": [
+          {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "{{actionLabel}}",
+              "emoji": true
+            },
+            "style": "primary",
+            "value": "approve_action",
+            "action_id": "btn_approve"
+          },
+          {
+              "type": "button",
+              "text": {
+                  "type": "plain_text",
+                  "text": "Ignore",
+                  "emoji": true
+              },
+              "value": "ignore_action",
+              "action_id": "btn_ignore"
+          }
+        ]
+      }
+    ]
+  }
