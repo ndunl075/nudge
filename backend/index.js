@@ -6,7 +6,9 @@ const path = require('path');
 // --- IMPORTS ---
 const { fetchPulseMetric } = require('./services/tableauService');
 const { generateInsight } = require('./services/aiService');
-const { executeWorkflow } = require('./services/actionService');
+// New Real Services
+const { getRecentMerges, revertPullRequest } = require('./services/githubService');
+const { getRecentBugs } = require('./services/jiraService');
 
 console.log("🟢 Nudge is starting up...");
 
@@ -29,7 +31,9 @@ async function runSimulation() {
         console.log("1️⃣  Fetching Mock Data...");
         const data = await fetchPulseMetric(); 
         console.log("2️⃣  Waking up the Intern (AI)...");
-        const insight = await generateInsight(data);
+        // In simulation, we just pass empty context or mock context
+        const insight = await generateInsight(data, "Simulation Mode: No external API context.");
+        
         console.log("\n🤖 --- NUDGE INTERN REPORT ---");
         console.log(`ANALYSIS: ${insight.analysis}`);
         console.log(`ACTION:   [ ${insight.action} ]`);
@@ -49,11 +53,11 @@ function startSlackApp() {
     const app = new App({
         token: process.env.SLACK_BOT_TOKEN,
         signingSecret: process.env.SLACK_SIGNING_SECRET,
-        socketMode: true, // Switched to true
-        appToken: process.env.SLACK_APP_TOKEN // Required for Socket Mode
+        socketMode: true,
+        appToken: process.env.SLACK_APP_TOKEN
     });
 
-    // Load UI Template (looking for nudgeCard.json in /views)
+    // Load UI Template
     const templatePath = path.join(__dirname, 'views', 'nudgeCard.json');
     let rawTemplate = "";
     try { 
@@ -68,15 +72,35 @@ function startSlackApp() {
         console.log("📥 Received /nudge-now command");
 
         try {
+            // 1. Get Tableau Data (Pulse)
             const data = await fetchPulseMetric();
-            const insight = await generateInsight(data);
+            
+            // 2. INVESTIGATE: Hit GitHub & Jira APIs
+            console.log("🔎 Checking GitHub and Jira...");
+            const recentPRs = await getRecentMerges(); // Defined in services/githubService.js
+            const recentBugs = await getRecentBugs();  // Defined in services/jiraService.js
 
-            // Sanitize for JSON
+            // 3. Construct Context for the AI
+            // We format this into a readable string so the AI understands what happened
+            const context = `
+                Tableau Metric: ${data.metric_name} is currently ${data.current_value} (Trend: ${data.trend_status}).
+                
+                RECENT GITHUB ACTIVITY:
+                ${recentPRs.length > 0 ? recentPRs.map(pr => `- PR #${pr.id} '${pr.title}' by ${pr.author} (merged ${pr.merged_at})`).join('\n') : "No recent merges."}
+                
+                RECENT JIRA ACTIVITY:
+                ${recentBugs.length > 0 ? recentBugs.map(bug => `- Bug ${bug.key}: ${bug.summary}`).join('\n') : "No new bugs reported."}
+            `;
+
+            // 4. Generate Insight with Real Context
+            const insight = await generateInsight(data, context);
+
+            // 5. Sanitize for JSON (Escape quotes/newlines)
             const safeAnalysis = (insight.analysis || "").replace(/"/g, '\\"').replace(/\n/g, '\\n');
             const safeLog = (insight.proactive_log || "").replace(/"/g, '\\"').replace(/\n/g, '\\n');
             const safeAction = (insight.action || "Check Tableau").replace(/"/g, '\\"');
 
-            // Inject into Template
+            // 6. Inject into Template
             let blockString = rawTemplate
                 .replace('{{metricName}}', data.metric_name)
                 .replace('{{currentValue}}', data.current_value)
@@ -85,6 +109,8 @@ function startSlackApp() {
                 .replace('{{actionLabel}}', safeAction);
             
             const blocks = JSON.parse(blockString).blocks;
+            
+            // 7. Send the card
             await respond({ blocks: blocks, text: "Nudge Alert: Action Required" });
 
         } catch (error) {
@@ -93,16 +119,29 @@ function startSlackApp() {
         }
     });
 
-    // ACTION: Button Click
+    // ACTION: Button Click (The Rollback)
     app.action('btn_approve', async ({ body, ack, respond }) => {
         await ack();
         await respond({ replace_original: false, text: "🤖 On it... executing workflow." });
-        const result = await executeWorkflow('btn_approve', body.user.id);
-        await respond({ replace_original: false, text: result.message });
+
+        try {
+            // Execute the REAL fix (Revert PR #892 - or make this dynamic based on AI output)
+            // In a pro version, you'd pass the PR ID in the button's 'value' field
+            const success = await revertPullRequest(892); 
+
+            if (success) {
+                await respond({ replace_original: false, text: "✅ Done. GitHub Action triggered to revert the PR." });
+            } else {
+                await respond({ replace_original: false, text: "❌ Failed to trigger GitHub API. Check permissions in .env." });
+            }
+        } catch (err) {
+            console.error(err);
+            await respond({ replace_original: false, text: "❌ Error executing workflow." });
+        }
     });
 
     (async () => {
-        await app.start(); // Port not strictly needed for Socket Mode but doesn't hurt
+        await app.start();
         console.log('⚡️ Nudge Agent is ONLINE and connected to Slack via Socket Mode!');
     })();
 }
