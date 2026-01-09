@@ -6,8 +6,7 @@ const path = require('path');
 // --- IMPORTS ---
 const { fetchPulseMetric } = require('./services/tableauService');
 const { generateInsight } = require('./services/aiService');
-// New Real Services
-const { getRecentMerges, revertPullRequest } = require('./services/githubService');
+const { getRecentMerges, revertPullRequest } = require('./services/gitService');
 const { getRecentBugs } = require('./services/jiraService');
 
 console.log("🟢 Nudge is starting up...");
@@ -31,7 +30,6 @@ async function runSimulation() {
         console.log("1️⃣  Fetching Mock Data...");
         const data = await fetchPulseMetric(); 
         console.log("2️⃣  Waking up the Intern (AI)...");
-        // In simulation, we just pass empty context or mock context
         const insight = await generateInsight(data, "Simulation Mode: No external API context.");
         
         console.log("\n🤖 --- NUDGE INTERN REPORT ---");
@@ -73,6 +71,7 @@ function startSlackApp() {
 
         try {
             // 1. Get Tableau Data (Pulse)
+            // This now uses the TABLEAU_METRIC_ID from your .env
             const data = await fetchPulseMetric();
             
             // 2. INVESTIGATE: Hit GitHub & Jira APIs
@@ -81,9 +80,9 @@ function startSlackApp() {
             const recentBugs = await getRecentBugs();  // Defined in services/jiraService.js
 
             // 3. Construct Context for the AI
-            // We format this into a readable string so the AI understands what happened
             const context = `
                 Tableau Metric: ${data.metric_name} is currently ${data.current_value} (Trend: ${data.trend_status}).
+                Context from Tableau: ${data.context || "None"}
                 
                 RECENT GITHUB ACTIVITY:
                 ${recentPRs.length > 0 ? recentPRs.map(pr => `- PR #${pr.id} '${pr.title}' by ${pr.author} (merged ${pr.merged_at})`).join('\n') : "No recent merges."}
@@ -95,7 +94,7 @@ function startSlackApp() {
             // 4. Generate Insight with Real Context
             const insight = await generateInsight(data, context);
 
-            // 5. Sanitize for JSON (Escape quotes/newlines)
+            // 5. Sanitize for JSON (Escape quotes/newlines to prevent breaking JSON)
             const safeAnalysis = (insight.analysis || "").replace(/"/g, '\\"').replace(/\n/g, '\\n');
             const safeLog = (insight.proactive_log || "").replace(/"/g, '\\"').replace(/\n/g, '\\n');
             const safeAction = (insight.action || "Check Tableau").replace(/"/g, '\\"');
@@ -109,9 +108,30 @@ function startSlackApp() {
                 .replace('{{actionLabel}}', safeAction);
             
             const blocks = JSON.parse(blockString).blocks;
+
+            // 7. STATUS INDICATOR (The "Real Tool" Polish)
+            // Determine color based on trend (Red = Bad, Green = Good/Neutral)
+            let statusColor = "#36a64f"; // Green Default
+            let statusEmoji = "✅";
+
+            if (data.trend_status === 'negative') {
+                statusColor = "#FF0000"; // Red
+                statusEmoji = "⚠️";
+            } else if (data.trend_status === 'neutral') {
+                statusColor = "#e8e8e8"; // Grey
+                statusEmoji = "ℹ️";
+            }
             
-            // 7. Send the card
-            await respond({ blocks: blocks, text: "Nudge Alert: Action Required" });
+            // 8. Send the card with Color Attachment
+            await respond({ 
+                text: `${statusEmoji} Nudge Alert: ${data.metric_name}`,
+                attachments: [
+                    {
+                        color: statusColor,
+                        blocks: blocks
+                    }
+                ]
+            });
 
         } catch (error) {
             console.error("❌ Command Error:", error);
