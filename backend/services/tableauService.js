@@ -31,7 +31,7 @@ async function fetchPulseMetric(metricId = DEFAULT_METRIC_ID) {
         return { 
             metric_name: "Configuration Error", 
             current_value: "Missing ID", 
-            trend_status: "neutral",
+            trend_status: "negative",
             context: "Please add TABLEAU_METRIC_ID to your .env file."
         };
     }

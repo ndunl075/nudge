@@ -1,49 +1,72 @@
 {
-    "blocks": [
-      {
-        "type": "header",
-        "text": {
-          "type": "plain_text",
-          "text": "🤖 Nudge: Weekly Intern Report",
-          "emoji": true
-        }
-      },
-      {
-        "type": "section",
-        "text": {
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "🤖 Nudge: Proactive Alert",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Metric:* {{metricName}}\n*Status:* {{currentValue}}"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*🔎 Root Cause Analysis:*\n{{aiAnalysis}}"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*💡 Proposed Action:*\n{{actionLabel}}"
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
           "type": "mrkdwn",
-          "text": "{{aiAnalysis}}"
+          "text": "*Intern Log:* {{proactiveLog}}"
         }
-      },
-      {
-        "type": "context",
-        "elements": [
-          {
-            "type": "mrkdwn",
-            "text": "*Background Work Completed:*\n{{proactiveLog}}"
-          }
-        ]
-      },
-      {
-        "type": "divider"
-      },
-      {
-        "type": "section",
-        "text": {
-          "type": "mrkdwn",
-          "text": "*Ready to proceed?*"
-        },
-        "accessory": {
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
           "type": "button",
           "text": {
             "type": "plain_text",
-            "text": "{{actionLabel}}",
+            "text": "✅ Approve Fix",
             "emoji": true
           },
           "style": "primary",
           "value": "approve_action",
           "action_id": "btn_approve"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "🚫 Deny (Fix Manually)",
+            "emoji": true
+          },
+          "style": "danger",
+          "value": "deny_action",
+          "action_id": "btn_deny"
         }
-      }
-    ]
-  }
+      ]
+    }
+  ]
+}

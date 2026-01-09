@@ -1,32 +1,76 @@
-// services/actionService.js
+const axios = require('axios');
 
-/**
- * Executes the specific workflow associated with a button click.
- * @param {string} actionId - The ID of the button clicked (e.g., 'btn_approve')
- * @param {string} userId - The Slack User ID of the person who clicked it
- * @returns {Promise<{message: string}>} - The result message to display in Slack
- */
-async function executeWorkflow(actionId, userId) {
-    console.log(`⚙️  Executing Workflow: '${actionId}' for user ${userId}`);
-    
-    // Simulate processing time (e.g., API calls to Salesforce or Email Service)
-    await new Promise(r => setTimeout(r, 1500));
+// CONFIG
+const REPO = process.env.GITHUB_REPO; 
+const TOKEN = process.env.GITHUB_TOKEN;
+const HEADERS = { 
+    Authorization: `token ${TOKEN}`,
+    Accept: 'application/vnd.github.v3+json'
+};
 
-    switch (actionId) {
-        case 'btn_approve':
-            return {
-                status: "success",
-                // Note: Slack uses single asterisks (*) for bold, not double (**).
-                message: "✅ *Done.* I sent the emails to the 150 affected users and updated the Salesforce Case."
-            };
-
-        default:
-            console.warn(`⚠️  Unknown action: ${actionId}`);
-            return { 
-                status: "error",
-                message: "❓ Unknown action ID. No workflow executed." 
-            };
+// --- TOOL 1: GET RECENT MERGES (For Investigation) ---
+async function getRecentMerges() {
+    if (!TOKEN || !REPO || TOKEN === "dummy_token") {
+        console.log("⚠️ GitHub Keys missing. Skipping.");
+        return [];
+    }
+    try {
+        const response = await axios.get(`https://api.github.com/repos/${REPO}/pulls`, {
+            headers: HEADERS,
+            params: { state: 'closed', sort: 'updated', direction: 'desc', per_page: 3 }
+        });
+        return response.data
+            .filter(pr => pr.merged_at !== null)
+            .map(pr => ({
+                id: pr.number,
+                title: pr.title,
+                merged_at: pr.merged_at,
+                author: pr.user ? pr.user.login : "Unknown"
+            }));
+    } catch (error) {
+        console.error("❌ GitHub Fetch Error:", error.response?.status);
+        return [];
     }
 }
 
-module.exports = { executeWorkflow };
+// --- TOOL 2: ROLLBACK PR (The Code Fix) ---
+async function rollbackPr(prNumber) {
+    if (!TOKEN) return false;
+    try {
+        console.log(`🚀 [Toolbox] Triggering Rollback for PR #${prNumber}...`);
+        
+        // 1. Try to trigger a real GitHub Action workflow
+        try {
+            await axios.post(`https://api.github.com/repos/${REPO}/actions/workflows/rollback.yml/dispatches`, {
+                ref: 'main',
+                inputs: { pr_id: String(prNumber), reason: "Nudge Auto-Fix" }
+            }, { headers: HEADERS });
+            return true;
+        } catch (wfError) {
+            // 2. Fallback: Post a comment if workflow file is missing
+            console.log("⚠️ Workflow dispatch failed (Missing .yml?). Falling back to Comment.");
+            await axios.post(`https://api.github.com/repos/${REPO}/issues/${prNumber}/comments`, {
+                body: "🚨 **Nudge Auto-Fix:** Rollback initiated via Slack."
+            }, { headers: HEADERS });
+            return true;
+        }
+    } catch (e) { console.error(e); return false; }
+}
+
+// --- TOOL 3: SCALE INFRASTRUCTURE (The Traffic Fix) ---
+async function scaleCluster(clusterId) {
+    console.log(`🚀 [Toolbox] Scaling Auto-Scaling Group: ${clusterId}...`);
+    // SIMULATION: Fake a 2-second API call to AWS
+    await new Promise(r => setTimeout(r, 2000)); 
+    return true;
+}
+
+// --- TOOL 4: RESTART SERVICE (The Memory Fix) ---
+async function restartService(serviceName) {
+    console.log(`🚀 [Toolbox] Restarting Container: ${serviceName}...`);
+    // SIMULATION: Fake a 1.5-second API call to Heroku/K8s
+    await new Promise(r => setTimeout(r, 1500)); 
+    return true;
+}
+
+module.exports = { getRecentMerges, rollbackPr, scaleCluster, restartService };
